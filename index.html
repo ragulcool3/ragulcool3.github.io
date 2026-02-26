@@ -908,6 +908,34 @@
             box-shadow: 0 15px 40px rgba(139, 90, 43, 0.3);
         }
 
+        .submit-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .form-message {
+            padding: 1rem 1.25rem;
+            margin-top: 1.25rem;
+            font-family: 'Montserrat', sans-serif;
+            font-size: 0.8rem;
+            letter-spacing: 0.05em;
+            display: none;
+        }
+
+        .form-message.success {
+            background: rgba(0, 180, 100, 0.12);
+            border: 1px solid rgba(0, 180, 100, 0.3);
+            color: #4caf7d;
+        }
+
+        .form-message.error {
+            background: rgba(220, 80, 80, 0.12);
+            border: 1px solid rgba(220, 80, 80, 0.3);
+            color: #e07070;
+        }
+
         /* Footer */
         footer {
             background: var(--cream);
@@ -1329,6 +1357,9 @@
         </div>
         <div class="contact-container">
             <form id="contactForm">
+                <input type="hidden" name="access_key" value="3d531137-86bc-4da5-a146-0367dffdbd5d">
+                <input type="hidden" name="subject" value="New Project Inquiry — UVIRA AEROSPACE">
+                <input type="checkbox" name="botcheck" style="display:none">
                 <div class="form-row">
                     <div class="form-group">
                         <label for="name">Name / Company</label>
@@ -1361,7 +1392,8 @@
                     <label for="message">Tell us about your project</label>
                     <textarea id="message" name="message" required placeholder="What are you building? What challenges are you facing? How can we help?"></textarea>
                 </div>
-                <button type="submit" class="submit-btn">Send Inquiry</button>
+                <button type="submit" class="submit-btn" id="submitBtn">Send Inquiry</button>
+                <div class="form-message" id="formMessage"></div>
             </form>
         </div>
     </section>
@@ -1392,11 +1424,42 @@
             });
         });
 
-        // Form submission
-        document.getElementById('contactForm').addEventListener('submit', function(e) {
+        // Form submission — Web3Forms
+        document.getElementById('contactForm').addEventListener('submit', async function(e) {
             e.preventDefault();
-            alert('Thank you for your inquiry! We will get back to you within 24 hours.');
-            this.reset();
+            const btn = document.getElementById('submitBtn');
+            const msg = document.getElementById('formMessage');
+
+            btn.disabled = true;
+            btn.textContent = 'Sending...';
+            msg.style.display = 'none';
+
+            const data = Object.fromEntries(new FormData(this));
+
+            try {
+                const res = await fetch('https://api.web3forms.com/submit', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+                const json = await res.json();
+
+                if (json.success) {
+                    msg.textContent = 'Your inquiry has been sent. We will get back to you within 24 hours.';
+                    msg.className = 'form-message success';
+                    this.reset();
+                } else {
+                    msg.textContent = json.message || 'Something went wrong. Please try again.';
+                    msg.className = 'form-message error';
+                }
+            } catch (err) {
+                msg.textContent = 'Network error. Please check your connection and try again.';
+                msg.className = 'form-message error';
+            }
+
+            msg.style.display = 'block';
+            btn.disabled = false;
+            btn.textContent = 'Send Inquiry';
         });
 
         // Intersection Observer for animations
